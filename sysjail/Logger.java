@@ -45,5 +45,6 @@ public class Logger {
 
         String log_string = date_fmt + color_switch + log;
         System.out.println(log_string);
+        CSVPersistenceProvider.WriteLog("logger_log.csv", log_string);
     }
 }

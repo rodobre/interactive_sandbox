@@ -48,6 +48,7 @@ class MultiArgument extends Argument {
         }
 
         for(int i = 0; i < argument_names.size(); ++i) {
+            CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", String.format("Read argument %s", argument_names.get(i)));
             indexed_values.put(argument_names.get(i), argument_values.get(i));
         }
     }
