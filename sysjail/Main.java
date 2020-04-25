@@ -33,7 +33,10 @@ public class Main {
 		}
 
 		ArgumentParser arg_parser = new ArgumentParser(process_names);
+		CSVPersistenceProvider.WriteLog("main_log.csv", "Acquired ArgumentParser instance, acquiring NativeInterfaceConnector...");
 		NativeInterfaceConnector native_interface = new NativeInterfaceConnector();
+		CSVPersistenceProvider.WriteLog("main_log.csv", "Acquired a NativeInterfaceConnector instance successfully");
 		native_interface.sandbox_processes(arg_parser.get_argument_list());
+		CSVPersistenceProvider.WriteLog("main_log.csv", "Exited program");
 	}
 }

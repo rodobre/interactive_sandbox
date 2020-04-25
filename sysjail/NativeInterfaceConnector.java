@@ -45,7 +45,7 @@ class PathUtils {
 
 public class NativeInterfaceConnector {
     private CStdLib c;
-    private final String sandbox_hostname = "sysjail";
+    private String sandbox_hostname       = "sysjail";
     private String sandbox_mtdir          = "./.sysjail_root";
     private String old_root               = ".oldroot";
     private int sysjail_user_id;
@@ -111,6 +111,22 @@ public class NativeInterfaceConnector {
 
     public NativeInterfaceConnector() {
         c = (CStdLib)Native.loadLibrary("c", CStdLib.class);
+        HashMap<String, String> settings = CSVPersistenceProvider.ReadSettings("/tmp/native_interface_connector_settings.csv");
+
+        int index = 0;
+        for(Map.Entry<String, String> pair : settings.entrySet()) {
+            System.out.println(pair);
+            System.out.println(pair.getKey());
+            System.out.println(pair.getValue());
+            if(pair.getKey().equals("sandbox_hostname")) {
+                Logger.Log(LogType.DEBUG, "Applying sandbox_hostname as " + pair.getValue());
+                sandbox_hostname = pair.getValue();
+            } else if(pair.getKey().equals("sandbox_mtdir")) {
+                sandbox_hostname = pair.getValue();
+            } else if(pair.getKey().equals("old_root")) {
+                old_root = pair.getValue();
+            }
+        }
     }
 
     private void set_user_id(int id) {
@@ -166,6 +182,7 @@ public class NativeInterfaceConnector {
                 set_user_id(u_id);
                 return;
             }
+            CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Successfully initialized the sandbox user");
         } catch(IOException except) {
             Logger.Log(LogType.ERROR, "Could not query users.");
             return;
@@ -198,9 +215,12 @@ public class NativeInterfaceConnector {
             Logger.Log(LogType.DEBUG, String.format("SYSCALL RESULT: %d", c.syscall(SYS_SYMLINK, String.format("%s/%s", old_root, dependency), String.format("%s/%s", new_root, dependency))));
         }
         Logger.Log(LogType.DEBUG, "Finished linking dependencies...");
+
+        CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Dependencies symlinked successfully");
     }
 
     private void enter_sandbox(String proc_path) {
+        CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Entering sandbox...");
 
         // Unshare the namespace to avoid confusion with host
         Logger.Log(LogType.DEBUG, String.format("SYSCALL RESULT: %d", c.syscall(SYS_UNSHARE, CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWIPC |
@@ -255,6 +275,8 @@ public class NativeInterfaceConnector {
         Logger.Log(LogType.DEBUG, "Removing old root directory...");
         Logger.Log(LogType.DEBUG, String.format("SYSCALL RESULT: %d", c.syscall(SYS_UMOUNT2, "/" + get_oldroot_path())));
         Logger.Log(LogType.DEBUG, String.format("Sandbox finished"));
+
+        CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Exited sandbox successfully");
     }
 
     public void sandbox_process(final String process_path) {
@@ -290,6 +312,7 @@ public class NativeInterfaceConnector {
             return;
         }
 
+        CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Finalized sandboxing the process for its lifetime");
         exit_sandbox();
     }
 
