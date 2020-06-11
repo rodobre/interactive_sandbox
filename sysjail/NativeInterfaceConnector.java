@@ -114,10 +114,8 @@ public class NativeInterfaceConnector {
         HashMap<String, String> settings = CSVPersistenceProvider.ReadSettings("/tmp/native_interface_connector_settings.csv");
 
         int index = 0;
+
         for(Map.Entry<String, String> pair : settings.entrySet()) {
-            System.out.println(pair);
-            System.out.println(pair.getKey());
-            System.out.println(pair.getValue());
             if(pair.getKey().equals("sandbox_hostname")) {
                 Logger.Log(LogType.DEBUG, "Applying sandbox_hostname as " + pair.getValue());
                 sandbox_hostname = pair.getValue();
@@ -127,6 +125,12 @@ public class NativeInterfaceConnector {
                 old_root = pair.getValue();
             }
         }
+
+        ArrayList<String> sql_options = DBPersistenceController.FetchNativeOptions();
+        if (!sql_options.get(0).equals(sandbox_hostname)) sandbox_hostname = sql_options.get(0);
+        if (!sql_options.get(1).equals(sandbox_mtdir)) sandbox_mtdir = sql_options.get(1);
+        if (!sql_options.get(2).equals(old_root)) old_root = sql_options.get(2);
+        Logger.Log(LogType.DEBUG, "Parsed options: " + sql_options);
     }
 
     private void set_user_id(int id) {
@@ -221,6 +225,7 @@ public class NativeInterfaceConnector {
 
     private void enter_sandbox(String proc_path) {
         CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Entering sandbox...");
+        DBPersistenceController.WriteLog(DBLogEnum.NATIVE, "Entering sandbox...");
 
         // Unshare the namespace to avoid confusion with host
         Logger.Log(LogType.DEBUG, String.format("SYSCALL RESULT: %d", c.syscall(SYS_UNSHARE, CLONE_NEWUTS | CLONE_NEWPID | CLONE_NEWNS | CLONE_NEWIPC |
@@ -277,12 +282,15 @@ public class NativeInterfaceConnector {
         Logger.Log(LogType.DEBUG, String.format("Sandbox finished"));
 
         CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Exited sandbox successfully");
+        DBPersistenceController.WriteLog(DBLogEnum.NATIVE, "Exited sandbox successfully");
     }
 
     public void sandbox_process(final String process_path) {
         
         Logger.Log(LogType.INFO, String.format("Preparing to sandbox process [%s]", process_path));
+        DBPersistenceController.WriteLog(DBLogEnum.NATIVE, String.format("Preparing to sandbox process [%s]", process_path));
         Logger.Log(LogType.DEBUG, "Entering sandbox mode...");
+        DBPersistenceController.WriteLog(DBLogEnum.NATIVE, "Entering sandbox mode...");
         
         // Acquire sandbox user
         create_sandbox_user_if_not_exists();
@@ -313,6 +321,7 @@ public class NativeInterfaceConnector {
         }
 
         CSVPersistenceProvider.WriteLog("native_interface_connector_log.csv", "Finalized sandboxing the process for its lifetime");
+        DBPersistenceController.WriteLog(DBLogEnum.NATIVE, "Finalized sandboxing the process for its lifetime");
         exit_sandbox();
     }
 
